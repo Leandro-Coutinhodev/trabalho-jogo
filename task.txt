@@ -1,0 +1,3 @@
+Retirar o código escrito dentro da função "main" e colocar em 
+uma função chamada "exibir_mapa", o tipo da função será void e 
+não receberá nenhum argumento.
