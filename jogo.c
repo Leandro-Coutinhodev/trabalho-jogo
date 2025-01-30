@@ -13,13 +13,14 @@ void exibir_mapa();
 void movimentar(char entrada);
 void movimentar_inimigo();
 int heuristica(int x1, int y1, int x2, int y2);
+void pontuar();
 
 char mapa[LINHAS][COLUNAS];
 int jogadorx, jogadory, linhas = 0, colunas = 0;
 int inimigox, inimigoy, tesourox, tesouroy;
 int dificuldade = 1;
 int nivel = 1;
-int hp;
+int hp, i, passos;
 
 typedef struct{
 
@@ -28,12 +29,21 @@ typedef struct{
     int pai_x, pai_y;
 } Nodo;
 
+struct Jogador{
+
+    int pontos = 0;
+    char inicial[3];
+};
+
+struct Jogador jogador[10];
+
 int main(){
 
     
     char entrada;
+    i = 0;
     while(1){
-
+    
     hp = 3;
     
     printf("\nEscolha a dificuldade desejada: \n");
@@ -41,33 +51,56 @@ int main(){
     printf("\n2 - Médio.");
     printf("\n3 - Difícil.\n");
     scanf("%d", &dificuldade);
-    pop_mapa();
 
-    while(nivel < 10){
+    while(nivel <= 10){
+    
+        passos = 0;
+
+        pop_mapa();
     while(1){
     exibir_mapa();
     scanf(" %c", &entrada);
     movimentar(entrada);
     if(jogadorx == tesourox && jogadory == tesouroy){
+        mapa[jogadorx][jogadory] = 'V';
+        exibir_mapa();
         printf("Você encontrou o tesouro. Parabéns!");
         nivel++;
         break;
     }
-    movimentar_inimigo();
-
     if(jogadorx == inimigox && jogadory == inimigoy){
-        if(hp > 0){
+        if(hp > 1){
             printf("\nVocê foi encontrado pelo inimigo!Tente novamente!");
             hp--;
             pop_mapa();
-            printf("\n\nVidas restantes = %d");
         }else{
             printf("\nVocê foi encontrado pelo inimigo!Fim de jogo!\n");
+            hp--;
+            break;
+        }
+        
+    }
+    movimentar_inimigo();
+
+    if(jogadorx == inimigox && jogadory == inimigoy){
+        if(hp > 1){
+            printf("\nVocê foi encontrado pelo inimigo!Tente novamente!");
+            hp--;
+            pop_mapa();
+        }else{
+            printf("\nVocê foi encontrado pelo inimigo!Fim de jogo!\n");
+            hp--;
             break;
         }
         
     }
     system("clear");
+    if(hp == 0){
+        break;
+    }
+    }
+    if(hp == 0){
+        break;
     }
     }
     }
@@ -168,7 +201,7 @@ void pop_mapa(){
 
     tesourox = posicoes_livres[tesouro_pos][0];
     tesouroy = posicoes_livres[tesouro_pos][1];
-    mapa[tesourox][tesouroy] = 'V';
+    mapa[tesourox][tesouroy] = 'X';
 
     
 }
@@ -190,6 +223,8 @@ void exibir_mapa(){
 }
 
 void movimentar(char entrada){
+
+    passos++;
 
     entrada = tolower(entrada);
     
@@ -221,91 +256,110 @@ void movimentar(char entrada){
 
 void movimentar_inimigo() {
 
-    if (dificuldade == 2) {
+     if (dificuldade == 2) {
         
         mapa[inimigox][inimigoy] = '.';
-        if (jogadorx < inimigox && mapa[inimigox - 1][inimigoy] != '#') {
+        
+        if (jogadorx < inimigox && mapa[inimigox - 1][inimigoy] != '#' && (inimigox - 1 != tesourox || inimigoy != tesouroy)) {
             inimigox--;
-        } else if (jogadorx > inimigox && mapa[inimigox + 1][inimigoy] != '#') {
+        } else if (jogadorx > inimigox && mapa[inimigox + 1][inimigoy] != '#' && (inimigox + 1 != tesourox || inimigoy != tesouroy)) {
             inimigox++;
-        } else if (jogadory < inimigoy && mapa[inimigox][inimigoy - 1] != '#') {
+        } else if (jogadory < inimigoy && mapa[inimigox][inimigoy - 1] != '#' && (inimigox != tesourox || inimigoy - 1 != tesouroy)) {
             inimigoy--;
-        } else if (jogadory > inimigoy && mapa[inimigox][inimigoy + 1] != '#') {
+        } else if (jogadory > inimigoy && mapa[inimigox][inimigoy + 1] != '#' && (inimigox != tesourox || inimigoy + 1 != tesouroy)) {
             inimigoy++;
         }
+
         mapa[inimigox][inimigoy] = 'I';
-    }else if(dificuldade == 3){
 
+    } else if (dificuldade == 3) {
 
-    int visitados[LINHAS][COLUNAS] = {0};
-    Nodo aberto[LINHAS * COLUNAS];
-    int inicio = 0, fim = 0;
+        int visitados[LINHAS][COLUNAS] = {0};
+        Nodo aberto[LINHAS * COLUNAS];
+        int inicio = 0, fim = 0;
 
-    Nodo inicial = {inimigox, inimigoy, 0, heuristica(inimigox, inimigoy, jogadorx, jogadory), 0, -1, -1};
-    inicial.custo_f = inicial.custo_g + inicial.custo_h;
-    aberto[fim++] = inicial;
+        Nodo inicial = {inimigox, inimigoy, 0, heuristica(inimigox, inimigoy, jogadorx, jogadory), 0, -1, -1};
+        inicial.custo_f = inicial.custo_g + inicial.custo_h;
+        aberto[fim++] = inicial;
 
-    Nodo melhor = inicial;
+        Nodo melhor = inicial;
 
-    while (inicio < fim) {
- 
-        int melhor_indice = inicio;
-        for (int i = inicio + 1; i < fim; i++) {
-            if (aberto[i].custo_f < aberto[melhor_indice].custo_f) {
-                melhor_indice = i;
+        while (inicio < fim) {
+
+            int melhor_indice = inicio;
+            for (int i = inicio + 1; i < fim; i++) {
+                if (aberto[i].custo_f < aberto[melhor_indice].custo_f) {
+                    melhor_indice = i;
+                }
             }
-        }
 
-     
-        Nodo atual = aberto[melhor_indice];
-        aberto[melhor_indice] = aberto[inicio];
-        aberto[inicio++] = atual;
+            Nodo atual = aberto[melhor_indice];
+            aberto[melhor_indice] = aberto[inicio];
+            aberto[inicio++] = atual;
 
+            visitados[atual.x][atual.y] = 1;
 
-        visitados[atual.x][atual.y] = 1;
-
-   
-        if (atual.x == jogadorx && atual.y == jogadory) {
-            melhor = atual;
-            break;
-        }
-
- 
-        int dx[] = {-1, 1, 0, 0};
-        int dy[] = {0, 0, -1, 1};
-
-        for (int i = 0; i < 4; i++) {
-            int nx = atual.x + dx[i];
-            int ny = atual.y + dy[i];
-
-      
-            if (nx >= 0 && nx < linhas && ny >= 0 && ny < colunas && mapa[nx][ny] != '#' && !visitados[nx][ny]) {
-                Nodo vizinho = {nx, ny, atual.custo_g + 1, heuristica(nx, ny, jogadorx, jogadory), 0, atual.x, atual.y};
-                vizinho.custo_f = vizinho.custo_g + vizinho.custo_h;
-
-                aberto[fim++] = vizinho;
-            }
-        }
-    }
-
-
-    Nodo passo = melhor;
-    while (passo.pai_x != inimigox || passo.pai_y != inimigoy) {
-        for (int i = inicio - 1; i >= 0; i--) {
-            if (aberto[i].x == passo.pai_x && aberto[i].y == passo.pai_y) {
-                passo = aberto[i];
+            if (atual.x == jogadorx && atual.y == jogadory) {
+                melhor = atual;
                 break;
             }
-        }
-    }
 
-    mapa[inimigox][inimigoy] = '.';
-    inimigox = passo.x;
-    inimigoy = passo.y;
-    mapa[inimigox][inimigoy] = 'I';
-}
+            int dx[] = {-1, 1, 0, 0};
+            int dy[] = {0, 0, -1, 1};
+
+            for (int i = 0; i < 4; i++) {
+                int nx = atual.x + dx[i];
+                int ny = atual.y + dy[i];
+
+                // Impedir que o inimigo passe pelo tesouro
+                if (nx == tesourox && ny == tesouroy) {
+                    continue;
+                }
+
+                if (nx >= 0 && nx < LINHAS && ny >= 0 && ny < COLUNAS && mapa[nx][ny] != '#' && !visitados[nx][ny]) {
+                    Nodo vizinho = {nx, ny, atual.custo_g + 1, heuristica(nx, ny, jogadorx, jogadory), 0, atual.x, atual.y};
+                    vizinho.custo_f = vizinho.custo_g + vizinho.custo_h;
+                    aberto[fim++] = vizinho;
+                }
+            }
+        }
+
+        Nodo passo = melhor;
+        while (passo.pai_x != inimigox || passo.pai_y != inimigoy) {
+            for (int i = inicio - 1; i >= 0; i--) {
+                if (aberto[i].x == passo.pai_x && aberto[i].y == passo.pai_y) {
+                    passo = aberto[i];
+                    break;
+                }
+            }
+        }
+
+        mapa[inimigox][inimigoy] = '.';
+        inimigox = passo.x;
+        inimigoy = passo.y;
+        mapa[inimigox][inimigoy] = 'I';
+    }
 }
 
 int heuristica(int x1, int y1, int x2, int y2) {
     return abs(x1 - x2) + abs(y1 - y2);
+}
+
+void pontuar(){
+
+    if(nivel == 1){
+        if(passos <= 65)
+            jogador[i].pontos = jogador[i].pontos + 65 - passos;
+        else
+            jogador[i].pontos = jogador[i].pontos + 0;
+    }else if(nivel == 2){
+        if(passos <= 85)
+            jogador[i].pontos = jogador[i].pontos + 85 - passos;
+        else
+            jogador[i].pontos = jogador[i].pontos + 0;
+    }else if(nivel == 3){
+        
+    }
+        
+
 }
