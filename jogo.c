@@ -8,19 +8,22 @@
 #define COLUNAS 200
 #define INFINITO 99999
 
-void pop_mapa();
-void exibir_mapa();
-void movimentar(char entrada);
-void movimentar_inimigo();
-int heuristica(int x1, int y1, int x2, int y2);
-void pontuar();
+void pop_mapa();//Carrega os arquivos dos mapas e os adiciona na matriz mapa. Gera as posições iniciais dos personagens e do tesouro.
+void exibir_mapa();//Exibe  o mapa atual com os personagens e o tesouro já adicionados.
+void movimentar(char entrada);//Movimenta o jogador de acordo com o caractere de entrada.
+void movimentar_inimigo();//De acordo com o nível de dificuldade, gera um movimento para perseguir o jogador(utiliza o algoritmo A-Estrela na dificuldade 3).
+int heuristica(int x1, int y1, int x2, int y2);//utiliza a distancia Manhattan para calcular a menor distância de um nó iicial(inimigo) até o destino(jogador).Nós = índices da matriz.
+void pontuar();//Calcula os pontos do jogador de acordo com a regra de pontuação presente na função.
+void rankear();//Solicita a inicial do jogador e exibe o rank geral de todos os jogadores.
+void ordRank();//Organiza o rank geral em ordem decrescente.
 
 char mapa[LINHAS][COLUNAS];
 int jogadorx, jogadory, linhas = 0, colunas = 0;
 int inimigox, inimigoy, tesourox, tesouroy;
 int dificuldade = 1;
-int nivel = 1;
-int hp, i, passos;
+int nivel;
+int hp, l, passos;
+char op;
 
 typedef struct{
 
@@ -31,27 +34,29 @@ typedef struct{
 
 struct Jogador{
 
-    int pontos = 0;
+    int pontos ;
     char inicial[3];
 };
 
-struct Jogador jogador[10];
+struct Jogador jogador[10] = {0};
 
 int main(){
 
     
     char entrada;
-    i = 0;
+    l = 0;
     while(1){
     
+    nivel = 1;
     hp = 3;
     
     printf("\nEscolha a dificuldade desejada: \n");
     printf("1 - Fácil.");
     printf("\n2 - Médio.");
     printf("\n3 - Difícil.\n");
+    do{
     scanf("%d", &dificuldade);
-
+    }while(dificuldade < 1 || dificuldade > 3); //Força uma entrada correta
     while(nivel <= 10){
     
         passos = 0;
@@ -59,12 +64,16 @@ int main(){
         pop_mapa();
     while(1){
     exibir_mapa();
+    do{
     scanf(" %c", &entrada);
+    tolower(entrada);
+    }while(entrada != 'w' && entrada != 'a' && entrada != 's' && entrada != 'd');
     movimentar(entrada);
     if(jogadorx == tesourox && jogadory == tesouroy){
         mapa[jogadorx][jogadory] = 'V';
         exibir_mapa();
-        printf("Você encontrou o tesouro. Parabéns!");
+        printf("Você encontrou o tesouro. Parabéns!\n\n");
+        pontuar();
         nivel++;
         break;
     }
@@ -103,10 +112,15 @@ int main(){
         break;
     }
     }
+    rankear();
+    l++;
+    printf("\n\nDeseja continuar no jogo?(s/n) : \n");
+    scanf(" %c", &op);
+    if(tolower(op) == 'n')
+        break;
     }
 
-
-
+    printf("\n\nObrigado por jogar!");
 }
 
 void pop_mapa(){
@@ -219,7 +233,7 @@ void exibir_mapa(){
     printf("\nw - Para cima.");
     printf("\na - Para a esquerda.");
     printf("\nd - Para a direita.");
-    printf("\ns - Para baixo.");
+    printf("\ns - Para baixo.\n");
 }
 
 void movimentar(char entrada){
@@ -347,19 +361,49 @@ int heuristica(int x1, int y1, int x2, int y2) {
 
 void pontuar(){
 
-    if(nivel == 1){
-        if(passos <= 65)
-            jogador[i].pontos = jogador[i].pontos + 65 - passos;
-        else
-            jogador[i].pontos = jogador[i].pontos + 0;
-    }else if(nivel == 2){
-        if(passos <= 85)
-            jogador[i].pontos = jogador[i].pontos + 85 - passos;
-        else
-            jogador[i].pontos = jogador[i].pontos + 0;
-    }else if(nivel == 3){
-        
-    }
-        
+    int base[10] = {65, 90, 115, 165, 215, 165, 215, 115, 215, 165};
+    int difi[3] = {1, 2, 3};
 
+    if(nivel >= 1 && nivel <= 10){
+
+        if(passos <= base[nivel-1]){
+
+            int pontos = (base[nivel-1] - passos) * difi[dificuldade-1];
+            jogador[l].pontos += pontos + (10 * difi[dificuldade-1]);
+        }else
+            jogador[l].pontos += 10;
+
+    }
+
+}
+
+void rankear() {
+    
+    printf("Digite as suas iniciais (3 caracteres): \n");
+    scanf("%3s", jogador[l].inicial);
+    getchar();
+
+    printf("\n%s, sua pontuação foi: %d\n", jogador[l].inicial, jogador[l].pontos);
+
+    ordRank();
+
+    printf("\n\n\t\t::: RANKING GERAL :::\n");
+    printf("\nPosição  |  Iniciais  |  Pontuação\n");
+    printf("----------------------------------\n");
+
+    for (int i = 0; i <= l; i++) {
+        printf("#%d       |   %s       |  %d\n", i + 1, jogador[i].inicial, jogador[i].pontos);
+    }
+}
+
+void ordRank() {
+    for (int i = 0; i < l; i++) {
+        for (int j = i + 1; j <= l; j++) {
+            if (jogador[i].pontos < jogador[j].pontos) {
+                struct Jogador temp = jogador[i];
+                jogador[i] = jogador[j];
+                jogador[j] = temp;
+            }
+        }
+    }
 }
