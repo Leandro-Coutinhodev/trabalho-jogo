@@ -42,6 +42,7 @@ struct Jogador jogador[10] = {0};
 
 int main(){
 
+    srand(time(NULL));
     
     char entrada;
     l = 0;
@@ -66,7 +67,8 @@ int main(){
     exibir_mapa();
     do{
     scanf(" %c", &entrada);
-    tolower(entrada);
+    while(getchar() != '\n');
+    entrada = tolower(entrada);
     }while(entrada != 'w' && entrada != 'a' && entrada != 's' && entrada != 'd');
     movimentar(entrada);
     if(jogadorx == tesourox && jogadory == tesouroy){
@@ -128,53 +130,33 @@ void pop_mapa(){
     char diretorio[50];
     sprintf(diretorio, "mapas/mapa%d.txt", nivel);
 
-    for(int i = 0;i < linhas;i++){
-        for(int j = 0;j < colunas;j++){
+    FILE *arquivo = fopen(diretorio, "r");
+    if (!arquivo) {
+        printf("Erro ao abrir o arquivo do mapa!\n");
+        return;
+    }
+
+    for (int i = 0; i < LINHAS; i++) {
+        for (int j = 0; j < COLUNAS; j++) {
             mapa[i][j] = '\0';
         }
     }
 
-    FILE *arquivo;  
-
-    char car;
-
-    arquivo = fopen(diretorio, "r");
-
-    while (fgets(mapa[linhas], COLUNAS, arquivo) != NULL) {
-        
+    // Lendo o mapa do arquivo
+    linhas = 0;
+    while (fgets(mapa[linhas], COLUNAS, arquivo)) {
+        int len = 0;
+        while (mapa[linhas][len] != '\0' && mapa[linhas][len] != '\n') {
+            len++;
+        }
+        if (len > colunas) {
+            colunas = len;
+        }
         linhas++;
+    }
+    fclose(arquivo);
+
     
-    }
-
-    for(int i = 0;i < linhas;i++){
-        for(int j = 0;j < COLUNAS; j++){
-
-            if(fscanf(arquivo, " %c", &car) != EOF){
-                printf("%c", mapa[i][j]);
-                 mapa[i][j] = car;
-            }
-
-            if(mapa[i][j] == 'P'){
-                    jogadorx = i;
-                    jogadory = j;
-                 }
-           
-        }
-    }
-     fclose(arquivo);
-
-     int colmaior;
-     for(int i = 0;i < linhas;i++){
-        colmaior = 0;
-        for(int j = 0;j < COLUNAS;j++){
-        if(mapa[i][j] == '.' || mapa[i][j] == '#' || mapa[i][j] == 'P' || mapa[i][j] == 'V')
-            colmaior++;
-        }
-        if(colunas < colmaior)
-            colunas = colmaior;
-        
-     }
-
     int posicoes_livres[LINHAS * COLUNAS][2];
     int total_posicoes = 0;
 
@@ -188,34 +170,39 @@ void pop_mapa(){
         }
     }
 
-    srand(time(NULL));
+    if (total_posicoes == 0) {
+        printf("Erro: Nenhuma posição livre encontrada no mapa.\n");
+        return;
+    }
+
+    
+
+
     int jogador_pos = rand() % total_posicoes;
-    int tesouro_pos = rand() % total_posicoes;
-
-    while (tesouro_pos == jogador_pos) {
-        tesouro_pos = rand() % total_posicoes;
-    }
-
-    if(dificuldade > 1){
-        
-        int inimigo_pos = rand() % total_posicoes;
-        while (inimigo_pos == jogador_pos || inimigo_pos == tesouro_pos) {
-        inimigo_pos = rand() % total_posicoes;
-  
-    }
-        inimigox = posicoes_livres[inimigo_pos][0];
-        inimigoy = posicoes_livres[inimigo_pos][1];
-        mapa[inimigox][inimigoy] = 'I';
-        
-    }
-
     jogadorx = posicoes_livres[jogador_pos][0];
     jogadory = posicoes_livres[jogador_pos][1];
     mapa[jogadorx][jogadory] = 'P';
 
+    int tesouro_pos;
+    do {
+        tesouro_pos = rand() % total_posicoes;
+    } while (tesouro_pos == jogador_pos);
+
     tesourox = posicoes_livres[tesouro_pos][0];
     tesouroy = posicoes_livres[tesouro_pos][1];
     mapa[tesourox][tesouroy] = 'X';
+
+
+    if (dificuldade > 1) {
+        int inimigo_pos;
+        do {
+            inimigo_pos = rand() % total_posicoes;
+        } while (inimigo_pos == jogador_pos || inimigo_pos == tesouro_pos);
+
+        inimigox = posicoes_livres[inimigo_pos][0];
+        inimigoy = posicoes_livres[inimigo_pos][1];
+        mapa[inimigox][inimigoy] = 'I';
+    }
 
     
 }
@@ -236,32 +223,29 @@ void exibir_mapa(){
     printf("\ns - Para baixo.\n");
 }
 
-void movimentar(char entrada){
-
+void movimentar(char entrada) {
     passos++;
 
-    entrada = tolower(entrada);
     
-    if(entrada == 'w' && mapa[jogadorx-1][jogadory] != '#' && jogadorx > 0){
-        
+    if (entrada == 'w' && jogadorx > 0 && mapa[jogadorx - 1][jogadory] != '#' && jogadorx - 1 < LINHAS) {
         mapa[jogadorx][jogadory] = '.';
         jogadorx--;
         mapa[jogadorx][jogadory] = 'P';
-
-
-    }else if(entrada == 's' && mapa[jogadorx+1][jogadory] != '#' && jogadorx < linhas){
-
+    } 
+    
+    else if (entrada == 's' && jogadorx < linhas - 1 && mapa[jogadorx + 1][jogadory] != '#' && jogadorx + 1 < LINHAS) {
         mapa[jogadorx][jogadory] = '.';
         jogadorx++;
         mapa[jogadorx][jogadory] = 'P';
-    }else if(entrada == 'a' && mapa[jogadorx][jogadory-1] != '#' && jogadory > 0){
-
+    } 
+  
+    else if (entrada == 'a' && jogadory > 0 && mapa[jogadorx][jogadory - 1] != '#' && jogadory - 1 < COLUNAS) {
         mapa[jogadorx][jogadory] = '.';
         jogadory--;
         mapa[jogadorx][jogadory] = 'P';
-
-    }else if(entrada == 'd' && mapa[jogadorx][jogadory+1] != '#' && jogadory < colunas){
-
+    } 
+   
+    else if (entrada == 'd' && jogadory < colunas - 1 && mapa[jogadorx][jogadory + 1] != '#' && jogadory + 1 < COLUNAS) {
         mapa[jogadorx][jogadory] = '.';
         jogadory++;
         mapa[jogadorx][jogadory] = 'P';
@@ -270,10 +254,9 @@ void movimentar(char entrada){
 
 void movimentar_inimigo() {
 
-     if (dificuldade == 2) {
-        
+    if (dificuldade == 2) {
         mapa[inimigox][inimigoy] = '.';
-        
+
         if (jogadorx < inimigox && mapa[inimigox - 1][inimigoy] != '#' && (inimigox - 1 != tesourox || inimigoy != tesouroy)) {
             inimigox--;
         } else if (jogadorx > inimigox && mapa[inimigox + 1][inimigoy] != '#' && (inimigox + 1 != tesourox || inimigoy != tesouroy)) {
@@ -287,7 +270,6 @@ void movimentar_inimigo() {
         mapa[inimigox][inimigoy] = 'I';
 
     } else if (dificuldade == 3) {
-
         int visitados[LINHAS][COLUNAS] = {0};
         Nodo aberto[LINHAS * COLUNAS];
         int inicio = 0, fim = 0;
@@ -299,7 +281,6 @@ void movimentar_inimigo() {
         Nodo melhor = inicial;
 
         while (inicio < fim) {
-
             int melhor_indice = inicio;
             for (int i = inicio + 1; i < fim; i++) {
                 if (aberto[i].custo_f < aberto[melhor_indice].custo_f) {
@@ -322,30 +303,39 @@ void movimentar_inimigo() {
             int dy[] = {0, 0, -1, 1};
 
             for (int i = 0; i < 4; i++) {
+
                 int nx = atual.x + dx[i];
                 int ny = atual.y + dy[i];
 
-                // Impedir que o inimigo passe pelo tesouro
-                if (nx == tesourox && ny == tesouroy) {
-                    continue;
-                }
+                if (nx >= 0 && nx < LINHAS && ny >= 0 && ny < COLUNAS && 
+                    mapa[nx][ny] != '#' && !visitados[nx][ny] && 
+                    !(nx == tesourox && ny == tesouroy)) {
 
-                if (nx >= 0 && nx < LINHAS && ny >= 0 && ny < COLUNAS && mapa[nx][ny] != '#' && !visitados[nx][ny]) {
-                    Nodo vizinho = {nx, ny, atual.custo_g + 1, heuristica(nx, ny, jogadorx, jogadory), 0, atual.x, atual.y};
-                    vizinho.custo_f = vizinho.custo_g + vizinho.custo_h;
-                    aberto[fim++] = vizinho;
+                    if (fim < LINHAS * COLUNAS) { // Evita estouro do array
+
+                        Nodo vizinho = {nx, ny, atual.custo_g + 1, heuristica(nx, ny, jogadorx, jogadory), 0, atual.x, atual.y};
+                        vizinho.custo_f = vizinho.custo_g + vizinho.custo_h;
+                        aberto[fim++] = vizinho;
+                    }
                 }
             }
         }
 
+        if (melhor.x == inimigox && melhor.y == inimigoy) {
+            return;
+        }
+
         Nodo passo = melhor;
         while (passo.pai_x != inimigox || passo.pai_y != inimigoy) {
+            int encontrou = 0;
             for (int i = inicio - 1; i >= 0; i--) {
                 if (aberto[i].x == passo.pai_x && aberto[i].y == passo.pai_y) {
                     passo = aberto[i];
+                    encontrou = 1;
                     break;
                 }
             }
+            if (!encontrou) break;  // Evita loop infinito caso não encontre o pai
         }
 
         mapa[inimigox][inimigoy] = '.';
@@ -357,7 +347,9 @@ void movimentar_inimigo() {
 
 int heuristica(int x1, int y1, int x2, int y2) {
     return abs(x1 - x2) + abs(y1 - y2);
+
 }
+
 
 void pontuar(){
 
